@@ -43,40 +43,40 @@
 
 ### 数据模型（所有功能依赖）
 
-- [ ] T008 [P] 创建BeanLocation接口和类型定义在 src/spring-bean-navigation/models/BeanLocation.ts
-- [ ] T009 [P] 创建BeanDefinitionType和InjectionType枚举在 src/spring-bean-navigation/models/types.ts
-- [ ] T010 [P] 创建BeanDefinition接口在 src/spring-bean-navigation/models/BeanDefinition.ts
-- [ ] T011 [P] 创建BeanInjectionPoint接口在 src/spring-bean-navigation/models/BeanInjectionPoint.ts
-- [ ] T012 [P] 创建BeanCandidate接口和MatchReason枚举在 src/spring-bean-navigation/models/BeanCandidate.ts
-- [ ] T013 创建BeanIndex类在 src/spring-bean-navigation/models/BeanIndex.ts（依赖T008-T012）
+- [X] T008 [P] 创建BeanLocation接口和类型定义在 src/spring-bean-navigation/models/BeanLocation.ts
+- [X] T009 [P] 创建BeanDefinitionType和InjectionType枚举在 src/spring-bean-navigation/models/types.ts
+- [X] T010 [P] 创建BeanDefinition接口在 src/spring-bean-navigation/models/BeanDefinition.ts
+- [X] T011 [P] 创建BeanInjectionPoint接口在 src/spring-bean-navigation/models/BeanInjectionPoint.ts
+- [X] T012 [P] 创建BeanCandidate接口和MatchReason枚举在 src/spring-bean-navigation/models/BeanCandidate.ts
+- [X] T013 创建BeanIndex类在 src/spring-bean-navigation/models/BeanIndex.ts（依赖T008-T012）
 
 ### 核心解析器（所有功能依赖）
 
-- [ ] T014 [P] 创建Java解析器接口 IJavaParser在 src/spring-bean-navigation/indexer/javaParser.ts
-- [ ] T015 [P] 实现java-parser集成和基础解析逻辑在 src/spring-bean-navigation/indexer/javaParser.ts
-- [ ] T016 [P] 创建注解扫描器 AnnotationScanner在 src/spring-bean-navigation/indexer/annotationScanner.ts
-- [ ] T017 [P] 实现Spring注解识别逻辑（@Autowired, @Service等）在 src/spring-bean-navigation/indexer/annotationScanner.ts
-- [ ] T018 创建Bean元数据提取器在 src/spring-bean-navigation/indexer/beanMetadataExtractor.ts（依赖T016-T017）
+- [X] T014 [P] 创建Java解析器接口 IJavaParser在 src/spring-bean-navigation/indexer/javaParser.ts
+- [X] T015 [P] 实现java-parser集成和基础解析逻辑在 src/spring-bean-navigation/indexer/javaParser.ts
+- [X] T016 [P] 创建注解扫描器 AnnotationScanner在 src/spring-bean-navigation/indexer/annotationScanner.ts
+- [X] T017 [P] 实现Spring注解识别逻辑（@Autowired, @Service等）在 src/spring-bean-navigation/indexer/annotationScanner.ts
+- [X] T018 创建Bean元数据提取器在 src/spring-bean-navigation/indexer/beanMetadataExtractor.ts（依赖T016-T017）
 
 ### Bean索引器（所有功能依赖）
 
-- [ ] T019 创建Bean索引器接口 IBeanIndexer在 src/spring-bean-navigation/indexer/beanIndexer.ts
-- [ ] T020 实现BeanIndexer核心类（initialize, buildFullIndex, updateFile方法）在 src/spring-bean-navigation/indexer/beanIndexer.ts
-- [ ] T021 [P] 实现持久化缓存逻辑（saveToPersistentStorage, loadFromPersistentStorage）在 src/spring-bean-navigation/indexer/beanIndexer.ts
-- [ ] T022 [P] 实现文件监听器 FileWatcher在 src/spring-bean-navigation/indexer/fileWatcher.ts
-- [ ] T023 [P] 实现依赖追踪器 DependencyTracker在 src/spring-bean-navigation/indexer/dependencyTracker.ts
-- [ ] T024 [P] 实现内存管理器 MemoryManager（LRU缓存）在 src/spring-bean-navigation/indexer/memoryManager.ts
+- [X] T019 创建Bean索引器接口 IBeanIndexer在 src/spring-bean-navigation/indexer/beanIndexer.ts
+- [X] T020 实现BeanIndexer核心类（initialize, buildFullIndex, updateFile方法）在 src/spring-bean-navigation/indexer/beanIndexer.ts
+- [X] T021 [P] 实现持久化缓存逻辑（saveToPersistentStorage, loadFromPersistentStorage）在 src/spring-bean-navigation/indexer/beanIndexer.ts
+- [X] T022 [P] 实现文件监听器 FileWatcher在 src/spring-bean-navigation/indexer/fileWatcher.ts
+- [X] T023 [P] 实现依赖追踪器 DependencyTracker在 src/spring-bean-navigation/indexer/dependencyTracker.ts
+- [X] T024 [P] 实现内存管理器 MemoryManager（LRU缓存）在 src/spring-bean-navigation/indexer/memoryManager.ts
 
 ### Bean解析器（所有功能依赖）
 
-- [ ] T025 创建Bean解析器接口 IBeanResolver在 src/spring-bean-navigation/resolver/beanResolver.ts
-- [ ] T026 实现BeanResolver核心逻辑（resolve, matches方法）在 src/spring-bean-navigation/resolver/beanResolver.ts
-- [ ] T027 [P] 实现Qualifier匹配器在 src/spring-bean-navigation/resolver/qualifierMatcher.ts
+- [X] T025 创建Bean解析器接口 IBeanResolver在 src/spring-bean-navigation/resolver/beanResolver.ts
+- [X] T026 实现BeanResolver核心逻辑（resolve, matches方法）在 src/spring-bean-navigation/resolver/beanResolver.ts
+- [X] T027 [P] 实现Qualifier匹配器在 src/spring-bean-navigation/resolver/qualifierMatcher.ts
 
 ### 工具函数（所有功能依赖）
 
-- [ ] T028 [P] 实现项目检测器 ProjectDetector在 src/spring-bean-navigation/utils/projectDetector.ts
-- [ ] T029 [P] 实现路径解析器 PathResolver在 src/spring-bean-navigation/utils/pathResolver.ts
+- [X] T028 [P] 实现项目检测器 ProjectDetector在 src/spring-bean-navigation/utils/projectDetector.ts
+- [X] T029 [P] 实现路径解析器 PathResolver在 src/spring-bean-navigation/utils/pathResolver.ts
 
 **检查点**: 基础设施就绪 - 用户故事实施现在可以并行开始
 
