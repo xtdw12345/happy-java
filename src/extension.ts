@@ -3,6 +3,10 @@
 import * as vscode from 'vscode';
 import { BeanIndexer } from './spring-bean-navigation/indexer/beanIndexer';
 import { SpringBeanDefinitionProvider } from './spring-bean-navigation/providers/definitionProvider';
+import { SpringBeanCodeLensProvider } from './spring-bean-navigation/providers/beanCodeLensProvider';
+import { BeanResolver } from './spring-bean-navigation/resolver/beanResolver';
+import { BeanInjectionPoint } from './spring-bean-navigation/models/BeanInjectionPoint';
+import { BeanLocation } from './spring-bean-navigation/models/BeanLocation';
 import { ProjectDetector } from './spring-bean-navigation/utils/projectDetector';
 
 let beanIndexer: BeanIndexer | undefined;
@@ -69,6 +73,73 @@ export async function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(providerDisposable);
 	console.log('[Happy Java] Definition Provider registered for Java files');
+
+	// Register CodeLens Provider for Java files
+	const codeLensProvider = new SpringBeanCodeLensProvider(beanIndexer);
+	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
+		{ language: 'java', scheme: 'file' },
+		codeLensProvider
+	);
+	context.subscriptions.push(codeLensDisposable);
+	console.log('[Happy Java] CodeLens Provider registered for Java files');
+
+	// Register command for navigating to bean definition (triggered by CodeLens)
+	const navigateToBeanCommand = vscode.commands.registerCommand(
+		'happy-java.navigateToBean',
+		async (injection: BeanInjectionPoint) => {
+			try {
+				// Get bean index
+				const index = beanIndexer!.getIndex();
+
+				// Resolve bean candidates
+				const resolver = new BeanResolver();
+				const candidates = resolver.resolve(injection, index);
+
+				if (candidates.length === 0) {
+					vscode.window.showWarningMessage(
+						`No Spring Bean found for type: ${injection.beanType}`
+					);
+					return;
+				}
+
+				let selectedCandidate = candidates[0];
+
+				if (candidates.length > 1) {
+					// Show Quick Pick for multiple candidates
+					const items = candidates.map(candidate => ({
+						label: candidate.displayLabel,
+						description: candidate.displayDescription,
+						detail: candidate.displayDetail,
+						candidate
+					}));
+
+					const selected = await vscode.window.showQuickPick(items, {
+						placeHolder: 'Multiple beans found. Select one to navigate:',
+						matchOnDescription: true,
+						matchOnDetail: true
+					});
+
+					if (!selected) {
+						return;
+					}
+
+					selectedCandidate = selected.candidate;
+				}
+
+				// Navigate to bean definition
+				const location = BeanLocation.toVSCodeLocation(selectedCandidate.beanDefinition.location);
+				if (location) {
+					await vscode.window.showTextDocument(location.uri, {
+						selection: location.range
+					});
+				}
+			} catch (error) {
+				console.error('[Happy Java] Error navigating to bean:', error);
+				vscode.window.showErrorMessage('Failed to navigate to bean definition');
+			}
+		}
+	);
+	context.subscriptions.push(navigateToBeanCommand);
 
 	// Register command for manual index rebuild
 	const rebuildCommand = vscode.commands.registerCommand('happy-java.rebuildIndex', async () => {

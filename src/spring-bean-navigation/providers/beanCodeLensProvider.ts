@@ -1,0 +1,403 @@
+/**
+ * CodeLens Provider for Spring Bean navigation
+ * Shows "go to bean definition" above injection points
+ */
+
+import * as vscode from 'vscode';
+import { BeanIndexer } from '../indexer/beanIndexer';
+import { BeanResolver } from '../resolver/beanResolver';
+import { BeanInjectionPoint } from '../models/BeanInjectionPoint';
+import { InjectionType } from '../models/types';
+import { BeanLocation } from '../models/BeanLocation';
+
+/**
+ * CodeLens provider for Spring Bean injection points
+ */
+export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
+  private indexer: BeanIndexer;
+  private resolver: BeanResolver;
+
+  constructor(indexer: BeanIndexer) {
+    this.indexer = indexer;
+    this.resolver = new BeanResolver();
+  }
+
+  /**
+   * Provide CodeLens for a document
+   * @param document Text document
+   * @param token Cancellation token
+   * @returns Array of CodeLens
+   */
+  async provideCodeLenses(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken
+  ): Promise<vscode.CodeLens[]> {
+    const codeLenses: vscode.CodeLens[] = [];
+
+    try {
+      // Scan document for injection points
+      const injectionPoints = await this.findInjectionPoints(document);
+
+      for (const injection of injectionPoints) {
+        // Get bean index
+        const index = this.indexer.getIndex();
+
+        // Resolve bean candidates
+        const candidates = this.resolver.resolve(injection, index);
+
+        if (candidates.length > 0) {
+          // Create CodeLens for this injection point
+          const range = new vscode.Range(
+            injection.location.line,
+            0,
+            injection.location.line,
+            0
+          );
+
+          const command: vscode.Command = {
+            title: candidates.length === 1
+              ? '→ go to bean definition'
+              : `→ go to bean definition (${candidates.length} candidates)`,
+            command: 'happy-java.navigateToBean',
+            arguments: [injection]
+          };
+
+          const codeLens = new vscode.CodeLens(range, command);
+          codeLenses.push(codeLens);
+        }
+      }
+    } catch (error) {
+      console.error('[CodeLensProvider] Error providing code lenses:', error);
+    }
+
+    return codeLenses;
+  }
+
+  /**
+   * Find all injection points in a document
+   * @param document Text document
+   * @returns Array of injection points
+   */
+  private async findInjectionPoints(
+    document: vscode.TextDocument
+  ): Promise<BeanInjectionPoint[]> {
+    const injectionPoints: BeanInjectionPoint[] = [];
+
+    // Scan each line for injection points
+    for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
+      const line = document.lineAt(lineNum);
+      const text = line.text;
+
+      // Check for field injection
+      const fieldInjection = this.extractFieldInjectionPoint(document, lineNum);
+      if (fieldInjection) {
+        injectionPoints.push(fieldInjection);
+      }
+
+      // Check for constructor parameter injection
+      const constructorInjection = this.extractConstructorParameterAtLine(document, lineNum);
+      if (constructorInjection) {
+        injectionPoints.push(constructorInjection);
+      }
+    }
+
+    return injectionPoints;
+  }
+
+  /**
+   * Extract field injection point from a line
+   * @param document Text document
+   * @param lineNumber Line number
+   * @returns Injection point or undefined
+   */
+  private extractFieldInjectionPoint(
+    document: vscode.TextDocument,
+    lineNumber: number
+  ): BeanInjectionPoint | undefined {
+    try {
+      const line = document.lineAt(lineNumber);
+      const text = line.text;
+
+      // Pattern: private/public Type fieldName;
+      const fieldPattern = /(private|public|protected)\s+([\w.]+)\s+(\w+)\s*;?/;
+      const match = text.match(fieldPattern);
+
+      if (!match) {
+        return undefined;
+      }
+
+      const type = match[2];
+      const name = match[3];
+
+      // Check for injection annotation in previous lines
+      const injectionAnnotation = this.findInjectionAnnotation(document, lineNumber);
+      if (!injectionAnnotation) {
+        return undefined;
+      }
+
+      // Create injection point
+      const injection: BeanInjectionPoint = {
+        injectionType: InjectionType.FIELD,
+        beanType: type,
+        location: BeanLocation.fromVSCodePosition(document.uri, new vscode.Position(lineNumber, 0)),
+        isRequired: true,
+        fieldName: name,
+        qualifier: injectionAnnotation.qualifier,
+        beanName: injectionAnnotation.beanName
+      };
+
+      return injection;
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract constructor parameter injection at a specific line
+   * @param document Text document
+   * @param lineNumber Line number
+   * @returns Injection point or undefined
+   */
+  private extractConstructorParameterAtLine(
+    document: vscode.TextDocument,
+    lineNumber: number
+  ): BeanInjectionPoint | undefined {
+    try {
+      const line = document.lineAt(lineNumber);
+      const text = line.text.trim();
+
+      // Skip if not a constructor parameter line
+      if (!text.includes('(') && !text.match(/([\w.]+)\s+(\w+)[,)]/)) {
+        return undefined;
+      }
+
+      // Check if we're in a constructor context
+      const constructorInfo = this.findConstructorDeclaration(document, lineNumber);
+      if (!constructorInfo) {
+        return undefined;
+      }
+
+      // Parse parameters
+      const parameters = this.parseConstructorParameters(document, constructorInfo.startLine, constructorInfo.endLine);
+
+      // Find parameter at this line
+      const param = parameters.find(p => p.line === lineNumber);
+      if (!param) {
+        return undefined;
+      }
+
+      // Check for @Qualifier annotation
+      const qualifier = this.findParameterQualifier(document, lineNumber);
+
+      // Create injection point
+      const injection: BeanInjectionPoint = {
+        injectionType: InjectionType.CONSTRUCTOR,
+        beanType: param.type,
+        location: BeanLocation.fromVSCodePosition(document.uri, new vscode.Position(lineNumber, 0)),
+        isRequired: true,
+        parameterName: param.name,
+        parameterIndex: param.index,
+        qualifier
+      };
+
+      return injection;
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  /**
+   * Find injection annotation before field declaration
+   * @param document Text document
+   * @param lineNumber Field line number
+   * @returns Injection annotation info or undefined
+   */
+  private findInjectionAnnotation(
+    document: vscode.TextDocument,
+    lineNumber: number
+  ): { type: string; qualifier?: string; beanName?: string } | undefined {
+    // Check previous lines for @Autowired, @Resource, @Inject
+    for (let i = lineNumber - 1; i >= Math.max(0, lineNumber - 5); i--) {
+      const line = document.lineAt(i).text.trim();
+
+      // @Autowired
+      if (line.includes('@Autowired')) {
+        return { type: 'Autowired' };
+      }
+
+      // @Resource(name="beanName")
+      const resourceMatch = line.match(/@Resource\s*\(\s*name\s*=\s*"(\w+)"\s*\)/);
+      if (resourceMatch) {
+        return { type: 'Resource', beanName: resourceMatch[1] };
+      }
+      if (line.includes('@Resource')) {
+        return { type: 'Resource' };
+      }
+
+      // @Inject
+      if (line.includes('@Inject')) {
+        return { type: 'Inject' };
+      }
+
+      // @Qualifier("value")
+      const qualifierMatch = line.match(/@Qualifier\s*\(\s*"(\w+)"\s*\)/);
+      if (qualifierMatch) {
+        return { type: 'Qualifier', qualifier: qualifierMatch[1] };
+      }
+
+      // Stop if we hit another field or class declaration
+      if (line.includes('class ') || line.match(/(private|public|protected)\s+\w+\s+\w+/)) {
+        break;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Find constructor declaration containing the given line
+   * @param document Text document
+   * @param lineNumber Current line number
+   * @returns Constructor info or undefined
+   */
+  private findConstructorDeclaration(
+    document: vscode.TextDocument,
+    lineNumber: number
+  ): { startLine: number; endLine: number; className: string } | undefined {
+    // Search upward for constructor signature
+    let startLine = lineNumber;
+    let foundConstructor = false;
+    let className = '';
+
+    // First, find the class name by searching upward
+    for (let i = lineNumber; i >= Math.max(0, lineNumber - 50); i--) {
+      const line = document.lineAt(i).text.trim();
+      const classMatch = line.match(/class\s+(\w+)/);
+      if (classMatch) {
+        className = classMatch[1];
+        break;
+      }
+    }
+
+    if (!className) {
+      return undefined;
+    }
+
+    // Find constructor signature (looks for "ClassName(" pattern)
+    for (let i = lineNumber; i >= Math.max(0, lineNumber - 20); i--) {
+      const line = document.lineAt(i).text;
+      if (line.includes(className + '(')) {
+        startLine = i;
+        foundConstructor = true;
+        break;
+      }
+    }
+
+    if (!foundConstructor) {
+      return undefined;
+    }
+
+    // Find end of constructor parameters (closing parenthesis)
+    let endLine = startLine;
+    for (let i = startLine; i <= Math.min(document.lineCount - 1, startLine + 20); i++) {
+      const line = document.lineAt(i).text;
+      if (line.includes(')')) {
+        endLine = i;
+        break;
+      }
+    }
+
+    return { startLine, endLine, className };
+  }
+
+  /**
+   * Parse all parameters from constructor declaration
+   * @param document Text document
+   * @param startLine Constructor start line
+   * @param endLine Constructor end line
+   * @returns Array of parameter info
+   */
+  private parseConstructorParameters(
+    document: vscode.TextDocument,
+    startLine: number,
+    endLine: number
+  ): Array<{ type: string; name: string; index: number; line: number }> {
+    const parameters: Array<{ type: string; name: string; index: number; line: number }> = [];
+
+    // Collect all text from startLine to endLine
+    let fullText = '';
+    const lineStarts: number[] = [0];
+
+    for (let i = startLine; i <= endLine; i++) {
+      const lineText = document.lineAt(i).text;
+      fullText += lineText + '\n';
+      if (i < endLine) {
+        lineStarts.push(fullText.length);
+      }
+    }
+
+    // Extract content between first '(' and last ')'
+    const paramStart = fullText.indexOf('(');
+    const paramEnd = fullText.lastIndexOf(')');
+    if (paramStart === -1 || paramEnd === -1) {
+      return parameters;
+    }
+
+    const paramText = fullText.substring(paramStart + 1, paramEnd);
+
+    // Pattern to match parameters: Type paramName
+    const paramPattern = /([\w.]+)\s+(\w+)\s*[,)]/g;
+    let match;
+    let index = 0;
+
+    while ((match = paramPattern.exec(paramText)) !== null) {
+      const type = match[1];
+      const name = match[2];
+
+      // Find which line this parameter is on
+      const namePosition = paramStart + 1 + match.index + match[1].length + 1;
+      let foundLine = startLine;
+
+      for (let i = 0; i < lineStarts.length; i++) {
+        if (namePosition >= lineStarts[i] &&
+            (i === lineStarts.length - 1 || namePosition < lineStarts[i + 1])) {
+          foundLine = startLine + i;
+          break;
+        }
+      }
+
+      parameters.push({
+        type,
+        name,
+        index,
+        line: foundLine
+      });
+
+      index++;
+    }
+
+    return parameters;
+  }
+
+  /**
+   * Find @Qualifier annotation for a constructor parameter
+   * @param document Text document
+   * @param paramLine Parameter line number
+   * @returns Qualifier value or undefined
+   */
+  private findParameterQualifier(
+    document: vscode.TextDocument,
+    paramLine: number
+  ): string | undefined {
+    // Check same line and previous line for @Qualifier
+    for (let i = paramLine; i >= Math.max(0, paramLine - 1); i--) {
+      const line = document.lineAt(i).text;
+      const qualifierMatch = line.match(/@Qualifier\s*\(\s*"(\w+)"\s*\)/);
+      if (qualifierMatch) {
+        return qualifierMatch[1];
+      }
+    }
+
+    return undefined;
+  }
+}

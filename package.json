@@ -20,6 +20,10 @@
       {
         "command": "happy-java.happyJava",
         "title": "Happy Java"
+      },
+      {
+        "command": "happy-java.navigateToBean",
+        "title": "navigateToBean"
       }
     ],
     "configuration": {
