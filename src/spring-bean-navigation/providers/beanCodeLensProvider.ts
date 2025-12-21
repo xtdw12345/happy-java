@@ -35,15 +35,23 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
 
     try {
+      console.log(`[CodeLensProvider] Providing CodeLenses for ${document.fileName}`);
+
       // Scan document for injection points
       const injectionPoints = await this.findInjectionPoints(document);
+      console.log(`[CodeLensProvider] Found ${injectionPoints.length} injection points`);
 
       for (const injection of injectionPoints) {
+        console.log(`[CodeLensProvider] Processing injection: ${injection.beanType} at line ${injection.location.line}`);
+
         // Get bean index
         const index = this.indexer.getIndex();
+        const stats = index.getStats();
+        console.log(`[CodeLensProvider] Index has ${stats.totalBeans} beans`);
 
         // Resolve bean candidates
         const candidates = this.resolver.resolve(injection, index);
+        console.log(`[CodeLensProvider] Found ${candidates.length} candidates for ${injection.beanType}`);
 
         if (candidates.length > 0) {
           // Create CodeLens for this injection point
@@ -66,6 +74,8 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
           codeLenses.push(codeLens);
         }
       }
+
+      console.log(`[CodeLensProvider] Returning ${codeLenses.length} CodeLenses`);
     } catch (error) {
       console.error('[CodeLensProvider] Error providing code lenses:', error);
     }
@@ -129,11 +139,16 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
       const type = match[2];
       const name = match[3];
 
+      console.log(`[CodeLensProvider] Found field at line ${lineNumber}: ${type} ${name}`);
+
       // Check for injection annotation in previous lines
       const injectionAnnotation = this.findInjectionAnnotation(document, lineNumber);
       if (!injectionAnnotation) {
+        console.log(`[CodeLensProvider] No injection annotation found for field ${name} at line ${lineNumber}`);
         return undefined;
       }
+
+      console.log(`[CodeLensProvider] Found injection annotation: ${injectionAnnotation.type}`);
 
       // Create injection point
       const injection: BeanInjectionPoint = {
@@ -148,6 +163,7 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
 
       return injection;
     } catch (error) {
+      console.error(`[CodeLensProvider] Error extracting field injection at line ${lineNumber}:`, error);
       return undefined;
     }
   }

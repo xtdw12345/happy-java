@@ -92,8 +92,9 @@ export class AnnotationScanner implements IAnnotationScanner {
 
     try {
       // Navigate CST to find annotations
-      // java-parser CST structure: compilationUnit -> typeDeclaration -> classDeclaration
+      // java-parser CST structure: ordinaryCompilationUnit -> typeDeclaration -> classDeclaration
       if (!cst || !cst.children) {
+        console.log(`[AnnotationScanner] No CST or children`);
         return annotations;
       }
 
@@ -155,12 +156,15 @@ export class AnnotationScanner implements IAnnotationScanner {
 
     try {
       // Navigate to class declaration
-      const compilationUnit = cst.children?.compilationUnit?.[0];
-      if (!compilationUnit) {
+      // Note: java-parser returns ordinaryCompilationUnit, not compilationUnit
+      const ordinaryCompilationUnit = cst.children?.ordinaryCompilationUnit?.[0];
+      if (!ordinaryCompilationUnit) {
+        console.log('[AnnotationScanner] No ordinaryCompilationUnit found');
         return annotations;
       }
 
-      const typeDeclarations = compilationUnit.children?.typeDeclaration || [];
+      const typeDeclarations = ordinaryCompilationUnit.children?.typeDeclaration || [];
+      console.log(`[AnnotationScanner] Found ${typeDeclarations.length} type declarations`);
 
       for (const typeDecl of typeDeclarations) {
         const classDecl = typeDecl.children?.classDeclaration?.[0];
@@ -168,11 +172,16 @@ export class AnnotationScanner implements IAnnotationScanner {
           continue;
         }
 
+        console.log('[AnnotationScanner] Found class declaration');
+
         // Extract annotations from class modifiers
         const modifiers = classDecl.children?.classModifier || [];
+        console.log(`[AnnotationScanner] Found ${modifiers.length} class modifiers`);
+
         for (const modifier of modifiers) {
           const annotation = this.extractAnnotationFromModifier(modifier, uri);
           if (annotation) {
+            console.log(`[AnnotationScanner] Extracted class annotation: ${annotation.name}`);
             annotations.push(annotation);
           }
         }
@@ -195,12 +204,12 @@ export class AnnotationScanner implements IAnnotationScanner {
 
     try {
       // Navigate to field declarations
-      const compilationUnit = cst.children?.compilationUnit?.[0];
-      if (!compilationUnit) {
+      const ordinaryCompilationUnit = cst.children?.ordinaryCompilationUnit?.[0];
+      if (!ordinaryCompilationUnit) {
         return annotations;
       }
 
-      const typeDeclarations = compilationUnit.children?.typeDeclaration || [];
+      const typeDeclarations = ordinaryCompilationUnit.children?.typeDeclaration || [];
 
       for (const typeDecl of typeDeclarations) {
         const classDecl = typeDecl.children?.classDeclaration?.[0];
@@ -222,10 +231,11 @@ export class AnnotationScanner implements IAnnotationScanner {
           }
 
           // Extract field modifiers (annotations)
-          const modifiers = bodyDecl.children?.classBodyDeclarationModifier || [];
+          const modifiers = bodyDecl.children?.modifier || [];
           for (const modifier of modifiers) {
             const annotation = this.extractAnnotationFromModifier(modifier, uri);
             if (annotation) {
+              console.log(`[AnnotationScanner] Extracted field annotation: ${annotation.name}`);
               annotations.push(annotation);
             }
           }
@@ -249,12 +259,12 @@ export class AnnotationScanner implements IAnnotationScanner {
 
     try {
       // Similar to field annotations, but for methods
-      const compilationUnit = cst.children?.compilationUnit?.[0];
-      if (!compilationUnit) {
+      const ordinaryCompilationUnit = cst.children?.ordinaryCompilationUnit?.[0];
+      if (!ordinaryCompilationUnit) {
         return annotations;
       }
 
-      const typeDeclarations = compilationUnit.children?.typeDeclaration || [];
+      const typeDeclarations = ordinaryCompilationUnit.children?.typeDeclaration || [];
 
       for (const typeDecl of typeDeclarations) {
         const classDecl = typeDecl.children?.classDeclaration?.[0];
@@ -276,10 +286,11 @@ export class AnnotationScanner implements IAnnotationScanner {
           }
 
           // Extract method modifiers (annotations)
-          const modifiers = bodyDecl.children?.classBodyDeclarationModifier || [];
+          const modifiers = bodyDecl.children?.modifier || [];
           for (const modifier of modifiers) {
             const annotation = this.extractAnnotationFromModifier(modifier, uri);
             if (annotation) {
+              console.log(`[AnnotationScanner] Extracted method annotation: ${annotation.name}`);
               annotations.push(annotation);
             }
           }

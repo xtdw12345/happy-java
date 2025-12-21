@@ -43,20 +43,33 @@ export class BeanMetadataExtractor {
     };
 
     try {
+      console.log(`[BeanMetadataExtractor] Extracting from file: ${uri.fsPath}`);
+
       // Get CST from parser
       const cst = await this.javaParser.getCST(uri);
       if (!cst) {
+        console.log(`[BeanMetadataExtractor] No CST returned for ${uri.fsPath}`);
         return result;
       }
 
+      console.log(`[BeanMetadataExtractor] CST obtained, extracting annotations`);
+
       // Extract annotations
       const annotations = this.annotationScanner.extractAnnotations(cst, uri);
+      console.log(`[BeanMetadataExtractor] Found ${annotations.length} annotations`);
+
+      // Log all annotations found
+      for (const ann of annotations) {
+        console.log(`[BeanMetadataExtractor] Annotation: ${ann.name} at line ${ann.location.line}`);
+      }
 
       // Extract bean definitions
       result.definitions = this.extractBeanDefinitions(annotations, uri, cst);
+      console.log(`[BeanMetadataExtractor] Extracted ${result.definitions.length} bean definitions`);
 
       // Extract injection points
       result.injectionPoints = this.extractInjectionPoints(annotations, uri, cst);
+      console.log(`[BeanMetadataExtractor] Extracted ${result.injectionPoints.length} injection points`);
 
     } catch (error) {
       console.error(`[BeanMetadataExtractor] Failed to extract metadata from ${uri.fsPath}:`, error);
@@ -76,10 +89,15 @@ export class BeanMetadataExtractor {
     const definitions: BeanDefinition[] = [];
 
     for (const annotation of annotations) {
+      console.log(`[BeanMetadataExtractor] Checking annotation ${annotation.name} for bean definition`);
       if (this.annotationScanner.isBeanDefinitionAnnotation(annotation)) {
+        console.log(`[BeanMetadataExtractor] ${annotation.name} is a bean definition annotation`);
         const definition = this.createBeanDefinition(annotation, uri, cst);
         if (definition) {
+          console.log(`[BeanMetadataExtractor] Created bean definition: ${definition.name} (${definition.type})`);
           definitions.push(definition);
+        } else {
+          console.log(`[BeanMetadataExtractor] Failed to create bean definition for ${annotation.name}`);
         }
       }
     }
@@ -118,18 +136,27 @@ export class BeanMetadataExtractor {
    */
   private createBeanDefinition(annotation: Annotation, uri: vscode.Uri, cst: any): BeanDefinition | undefined {
     try {
+      console.log(`[BeanMetadataExtractor] Creating bean definition for ${annotation.name}`);
+
       // Extract bean name from annotation parameter or derive from class name
       const explicitName = this.annotationScanner.extractAnnotationParameter(annotation, 'value') ||
                           this.annotationScanner.extractAnnotationParameter(annotation, 'name');
 
+      console.log(`[BeanMetadataExtractor] Explicit name from annotation: ${explicitName}`);
+
       // Get class information from CST
       const classInfo = this.extractClassInfo(cst);
       if (!classInfo) {
+        console.log(`[BeanMetadataExtractor] Failed to extract class info from CST`);
         return undefined;
       }
 
+      console.log(`[BeanMetadataExtractor] Class info: ${classInfo.className}, FQN: ${classInfo.fullyQualifiedName}`);
+
       const beanName = explicitName || BeanDefinition.getDefaultBeanName(classInfo.className);
       const beanType = classInfo.fullyQualifiedName;
+
+      console.log(`[BeanMetadataExtractor] Bean name: ${beanName}, type: ${beanType}`);
 
       // Determine definition type
       const definitionType = annotation.name === '@Bean'
@@ -142,7 +169,7 @@ export class BeanMetadataExtractor {
       // Check for @Primary
       const isPrimary = false; // Will be enhanced in user story implementation
 
-      return {
+      const definition = {
         name: beanName,
         type: beanType,
         definitionType,
@@ -153,6 +180,9 @@ export class BeanMetadataExtractor {
         isPrimary,
         isConditional: false
       };
+
+      console.log(`[BeanMetadataExtractor] Created bean definition successfully`);
+      return definition;
     } catch (error) {
       console.error('[BeanMetadataExtractor] Failed to create bean definition:', error);
       return undefined;
@@ -205,19 +235,28 @@ export class BeanMetadataExtractor {
   private extractClassInfo(cst: any): { className: string; fullyQualifiedName: string; packageName: string } | undefined {
     try {
       // Extract package name
-      const packageDecl = cst.children?.compilationUnit?.[0]?.children?.packageDeclaration?.[0];
+      const ordinaryCompilationUnit = cst.children?.ordinaryCompilationUnit?.[0];
+      if (!ordinaryCompilationUnit) {
+        console.log('[BeanMetadataExtractor] No ordinaryCompilationUnit in CST');
+        return undefined;
+      }
+
+      const packageDecl = ordinaryCompilationUnit.children?.packageDeclaration?.[0];
       const packageName = this.extractPackageName(packageDecl) || '';
 
       // Extract class name
-      const typeDecl = cst.children?.compilationUnit?.[0]?.children?.typeDeclaration?.[0];
+      const typeDecl = ordinaryCompilationUnit.children?.typeDeclaration?.[0];
       const classDecl = typeDecl?.children?.classDeclaration?.[0];
       const className = classDecl?.children?.typeIdentifier?.[0]?.children?.Identifier?.[0]?.image;
 
       if (!className) {
+        console.log('[BeanMetadataExtractor] No class name found in CST');
         return undefined;
       }
 
       const fullyQualifiedName = packageName ? `${packageName}.${className}` : className;
+
+      console.log(`[BeanMetadataExtractor] Extracted class info: ${className}, FQN: ${fullyQualifiedName}`);
 
       return {
         className,
@@ -225,6 +264,7 @@ export class BeanMetadataExtractor {
         packageName
       };
     } catch (error) {
+      console.error('[BeanMetadataExtractor] Error extracting class info:', error);
       return undefined;
     }
   }
