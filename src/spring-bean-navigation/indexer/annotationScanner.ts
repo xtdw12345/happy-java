@@ -458,11 +458,50 @@ export class AnnotationScanner implements IAnnotationScanner {
       if (identifier?.image) {
         return identifier.image;
       }
+
+      // For complex values (like annotations), extract all tokens
+      const tokens = this.extractAllTokens(elementValue);
+      if (tokens.length > 0) {
+        return tokens.join('');
+      }
     } catch (error) {
       // Return undefined
     }
 
     return undefined;
+  }
+
+  /**
+   * Recursively extract all tokens from a CST node
+   * @param node CST node
+   * @returns Array of token images
+   */
+  private extractAllTokens(node: any): string[] {
+    const tokens: string[] = [];
+
+    if (!node) {
+      return tokens;
+    }
+
+    // If this node has an image, it's a token
+    if (node.image !== undefined) {
+      tokens.push(node.image);
+      return tokens;
+    }
+
+    // If this node has children, recursively extract from children
+    if (node.children) {
+      for (const key in node.children) {
+        const children = node.children[key];
+        if (Array.isArray(children)) {
+          for (const child of children) {
+            tokens.push(...this.extractAllTokens(child));
+          }
+        }
+      }
+    }
+
+    return tokens;
   }
 
   /**
@@ -484,7 +523,11 @@ export class AnnotationScanner implements IAnnotationScanner {
       'Resource': 'javax.annotation.Resource',
       'Inject': 'javax.inject.Inject',
       'Qualifier': 'org.springframework.beans.factory.annotation.Qualifier',
-      'Primary': 'org.springframework.context.annotation.Primary'
+      'Primary': 'org.springframework.context.annotation.Primary',
+      // Lombok annotations
+      'NonNull': 'lombok.NonNull',
+      'RequiredArgsConstructor': 'lombok.RequiredArgsConstructor',
+      'AllArgsConstructor': 'lombok.AllArgsConstructor'
     };
 
     return fqnMap[simpleName] || simpleName;
