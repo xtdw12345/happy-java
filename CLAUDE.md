@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-19
 
 ## Active Technologies
+- TypeScript 5.9+ with strict mode enabled (003-lombok-autowired-support)
+- VS Code workspace state (existing BeanIndex in-memory structure) (003-lombok-autowired-support)
 
 - (002-spring-bean-navigation)
 
@@ -22,6 +24,7 @@ tests/
 : Follow standard conventions
 
 ## Recent Changes
+- 003-lombok-autowired-support: Added TypeScript 5.9+ with strict mode enabled
 
 - 002-spring-bean-navigation: Added
 

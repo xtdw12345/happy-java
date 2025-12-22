@@ -23,7 +23,9 @@ export enum InjectionType {
   /** Constructor parameter injection */
   CONSTRUCTOR = 'CONSTRUCTOR',
   /** Setter method injection */
-  SETTER_METHOD = 'SETTER_METHOD'
+  SETTER_METHOD = 'SETTER_METHOD',
+  /** Lombok-generated constructor injection (@RequiredArgsConstructor/@AllArgsConstructor with onConstructor) */
+  LOMBOK_CONSTRUCTOR = 'LOMBOK_CONSTRUCTOR'
 }
 
 /**
@@ -62,4 +64,60 @@ export function getMatchScore(reason: MatchReason): number {
     default:
       return 0;
   }
+}
+
+/**
+ * Lombok constructor annotation types
+ */
+export enum LombokConstructorType {
+  /** @RequiredArgsConstructor - includes @NonNull and final fields */
+  REQUIRED_ARGS = 'required-args',
+  /** @AllArgsConstructor - includes all fields */
+  ALL_ARGS = 'all-args'
+}
+
+/**
+ * OnConstructor parameter syntax variants
+ */
+export enum OnConstructorSyntax {
+  /** Java 7 style: onConstructor=@__({@Autowired}) */
+  JAVA7 = 'java7',
+  /** Java 8+ style: onConstructor_={@Autowired} */
+  JAVA8_UNDERSCORE = 'java8-underscore',
+  /** Java 8+ style: onConstructor__={@Autowired} */
+  JAVA8_DOUBLE_UNDERSCORE = 'java8-double-underscore'
+}
+
+/**
+ * Detected Lombok constructor annotation with dependency injection
+ */
+export interface LombokConstructorAnnotation {
+  /** Type of Lombok constructor */
+  type: LombokConstructorType;
+  /** Whether onConstructor contains @Autowired */
+  hasAutowired: boolean;
+  /** OnConstructor syntax variant detected */
+  syntaxVariant: OnConstructorSyntax;
+  /** Location of the annotation */
+  location: import('./BeanLocation').BeanLocation;
+}
+
+/**
+ * Field information extracted from CST for Lombok processing
+ */
+export interface LombokFieldInfo {
+  /** Field name */
+  name: string;
+  /** Field type (fully qualified if possible, simple name otherwise) */
+  type: string;
+  /** Location in source code */
+  location: import('./BeanLocation').BeanLocation;
+  /** Whether field has @NonNull annotation */
+  hasNonNull: boolean;
+  /** Whether field is final */
+  isFinal: boolean;
+  /** Optional @Qualifier value */
+  qualifier?: string;
+  /** Field annotations (for future extensibility) */
+  annotations: string[];
 }

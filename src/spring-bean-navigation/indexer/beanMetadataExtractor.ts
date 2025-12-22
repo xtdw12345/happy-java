@@ -9,6 +9,8 @@ import { BeanDefinition } from '../models/BeanDefinition';
 import { BeanInjectionPoint } from '../models/BeanInjectionPoint';
 import { BeanDefinitionType, InjectionType } from '../models/types';
 import { BeanLocation } from '../models/BeanLocation';
+import { LombokAnnotationDetector } from './lombok/lombokAnnotationDetector';
+import { LombokInjectionExtractor } from './lombok/lombokInjectionExtractor';
 
 /**
  * Bean metadata extraction result
@@ -25,10 +27,14 @@ export interface ExtractionResult {
 export class BeanMetadataExtractor {
   private javaParser: JavaParser;
   private annotationScanner: AnnotationScanner;
+  private lombokAnnotationDetector: LombokAnnotationDetector;
+  private lombokInjectionExtractor: LombokInjectionExtractor;
 
   constructor() {
     this.javaParser = new JavaParser();
     this.annotationScanner = new AnnotationScanner();
+    this.lombokAnnotationDetector = new LombokAnnotationDetector();
+    this.lombokInjectionExtractor = new LombokInjectionExtractor();
   }
 
   /**
@@ -115,6 +121,7 @@ export class BeanMetadataExtractor {
   private extractInjectionPoints(annotations: Annotation[], uri: vscode.Uri, cst: any): BeanInjectionPoint[] {
     const injectionPoints: BeanInjectionPoint[] = [];
 
+    // Extract explicit injection points (@Autowired, @Resource, @Inject)
     for (const annotation of annotations) {
       if (this.annotationScanner.isInjectionAnnotation(annotation)) {
         const injectionPoint = this.createInjectionPoint(annotation, uri, cst);
@@ -122,6 +129,15 @@ export class BeanMetadataExtractor {
           injectionPoints.push(injectionPoint);
         }
       }
+    }
+
+    // Extract Lombok-generated injection points
+    const lombokAnnotation = this.lombokAnnotationDetector.detectConstructorInjection(annotations);
+    if (lombokAnnotation && lombokAnnotation.hasAutowired) {
+      console.log(`[BeanMetadataExtractor] Detected Lombok constructor injection: ${lombokAnnotation.type}`);
+      const lombokInjections = this.lombokInjectionExtractor.extract(cst, uri, lombokAnnotation);
+      console.log(`[BeanMetadataExtractor] Extracted ${lombokInjections.length} Lombok injection points`);
+      injectionPoints.push(...lombokInjections);
     }
 
     return injectionPoints;

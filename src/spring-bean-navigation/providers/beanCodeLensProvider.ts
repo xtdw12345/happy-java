@@ -129,15 +129,15 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
       const text = line.text;
 
       // Pattern: private/public Type fieldName;
-      const fieldPattern = /(private|public|protected)\s+([\w.]+)\s+(\w+)\s*;?/;
+      const fieldPattern = /(private|public|protected)(\s+final)?\s+([\w.]+)\s+(\w+)\s*;/;
       const match = text.match(fieldPattern);
 
       if (!match) {
         return undefined;
       }
 
-      const type = match[2];
-      const name = match[3];
+      const type = match[3];
+      const name = match[4];
 
       console.log(`[CodeLensProvider] Found field at line ${lineNumber}: ${type} ${name}`);
 
@@ -259,6 +259,10 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
       const qualifierMatch = line.match(/@Qualifier\s*\(\s*"(\w+)"\s*\)/);
       if (qualifierMatch) {
         return { type: 'Qualifier', qualifier: qualifierMatch[1] };
+      }
+
+      if (line.includes("@NonNull")) {
+        return { type: 'NonNull'};
       }
 
       // Stop if we hit another field or class declaration
