@@ -5,6 +5,8 @@
 import * as vscode from 'vscode';
 import { BeanIndex, IndexStats } from '../models/BeanIndex';
 import { BeanMetadataExtractor } from './beanMetadataExtractor';
+import { InterfaceRegistry } from '../indexing/InterfaceRegistry';
+import { InterfaceExtractor } from '../indexing/InterfaceExtractor';
 
 /**
  * Bean indexer interface
@@ -43,6 +45,12 @@ export interface IBeanIndexer {
   getIndex(): BeanIndex;
 
   /**
+   * Get the interface registry
+   * @returns Interface registry
+   */
+  getInterfaceRegistry(): InterfaceRegistry;
+
+  /**
    * Save index to persistent storage
    */
   saveToPersistentStorage(): Promise<void>;
@@ -71,12 +79,16 @@ export interface IBeanIndexer {
 export class BeanIndexer implements IBeanIndexer {
   private index: BeanIndex;
   private metadataExtractor: BeanMetadataExtractor;
+  private interfaceRegistry: InterfaceRegistry;
+  private interfaceExtractor: InterfaceExtractor;
   private context: vscode.ExtensionContext | undefined;
   private workspaceFolders: vscode.WorkspaceFolder[];
 
   constructor() {
     this.index = new BeanIndex();
     this.metadataExtractor = new BeanMetadataExtractor();
+    this.interfaceRegistry = new InterfaceRegistry();
+    this.interfaceExtractor = new InterfaceExtractor();
     this.workspaceFolders = [];
   }
 
@@ -105,18 +117,49 @@ export class BeanIndexer implements IBeanIndexer {
 
   async updateFile(uri: vscode.Uri): Promise<void> {
     try {
-      // Remove old entries
+      // Remove old entries from both bean index and interface registry
       this.index.removeFileEntries(uri.fsPath);
+      // Note: InterfaceRegistry doesn't track files yet, so we can't remove by file
+      // This is acceptable for MVP as full reindex will rebuild everything
 
-      // Extract metadata
+      // Extract bean metadata
       const result = await this.metadataExtractor.extractFromFile(uri);
 
-      // Add to index
+      // Add beans to index
       if (result.definitions.length > 0) {
         this.index.addBeans(result.definitions);
       }
       if (result.injectionPoints.length > 0) {
         this.index.addInjections(result.injectionPoints);
+      }
+
+      // Extract and register interfaces
+      const interfaces = await this.interfaceExtractor.extractInterfaces(uri.fsPath);
+      for (const interfaceDef of interfaces) {
+        this.interfaceRegistry.registerInterface(interfaceDef);
+      }
+
+      // Extract and register implementation relationships
+      const implementations = await this.interfaceExtractor.extractImplementedInterfaces(uri.fsPath);
+      for (const [className, interfaceFQNs] of implementations.entries()) {
+        // Find the bean definition for this class
+        const bean = result.definitions.find(b =>
+          b.type.endsWith('.' + className) || b.type === className
+        );
+
+        if (bean) {
+          // Update bean's implementedInterfaces field
+          bean.implementedInterfaces = interfaceFQNs;
+
+          // Register each implementation relationship
+          for (const interfaceFQN of interfaceFQNs) {
+            this.interfaceRegistry.registerImplementation(
+              interfaceFQN,
+              bean,
+              'implements_clause'
+            );
+          }
+        }
       }
     } catch (error) {
       console.error(`[BeanIndexer] Failed to update file ${uri.fsPath}:`, error);
@@ -125,10 +168,15 @@ export class BeanIndexer implements IBeanIndexer {
 
   removeFile(uri: vscode.Uri): void {
     this.index.removeFileEntries(uri.fsPath);
+    // TODO: Remove interface entries when InterfaceRegistry supports file tracking
   }
 
   getIndex(): BeanIndex {
     return this.index;
+  }
+
+  getInterfaceRegistry(): InterfaceRegistry {
+    return this.interfaceRegistry;
   }
 
   async saveToPersistentStorage(): Promise<void> {

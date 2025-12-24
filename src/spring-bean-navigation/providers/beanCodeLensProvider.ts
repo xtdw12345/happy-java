@@ -6,8 +6,9 @@
 import * as vscode from 'vscode';
 import { BeanIndexer } from '../indexer/beanIndexer';
 import { BeanResolver } from '../resolver/beanResolver';
+import { InterfaceResolver } from '../indexing/InterfaceResolver';
 import { BeanInjectionPoint } from '../models/BeanInjectionPoint';
-import { InjectionType } from '../models/types';
+import { InjectionType, DisambiguationContext } from '../models/types';
 import { BeanLocation } from '../models/BeanLocation';
 
 /**
@@ -16,10 +17,12 @@ import { BeanLocation } from '../models/BeanLocation';
 export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
   private indexer: BeanIndexer;
   private resolver: BeanResolver;
+  private interfaceResolver: InterfaceResolver;
 
   constructor(indexer: BeanIndexer) {
     this.indexer = indexer;
     this.resolver = new BeanResolver();
+    this.interfaceResolver = new InterfaceResolver();
   }
 
   /**
@@ -44,33 +47,47 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
       for (const injection of injectionPoints) {
         console.log(`[CodeLensProvider] Processing injection: ${injection.beanType} at line ${injection.location.line}`);
 
-        // Get bean index
+        // Get bean index and interface registry
         const index = this.indexer.getIndex();
+        const interfaceRegistry = this.indexer.getInterfaceRegistry();
         const stats = index.getStats();
         console.log(`[CodeLensProvider] Index has ${stats.totalBeans} beans`);
 
-        // Resolve bean candidates
-        const candidates = this.resolver.resolve(injection, index);
-        console.log(`[CodeLensProvider] Found ${candidates.length} candidates for ${injection.beanType}`);
+        // Check if injection type is an interface
+        const isInterface = interfaceRegistry.hasInterface(injection.beanType);
+        console.log(`[CodeLensProvider] Type ${injection.beanType} is interface: ${isInterface}`);
 
-        if (candidates.length > 0) {
-          // Create CodeLens for this injection point
-          const range = new vscode.Range(
-            injection.location.line,
-            0,
-            injection.location.line,
-            0
-          );
+        let codeLens: vscode.CodeLens | undefined;
 
-          const command: vscode.Command = {
-            title: candidates.length === 1
-              ? '→ go to bean definition'
-              : `→ go to bean definition (${candidates.length} candidates)`,
-            command: 'happy-java.navigateToBean',
-            arguments: [injection]
-          };
+        if (isInterface) {
+          // Use interface resolution
+          codeLens = this.resolveInterfaceInjection(injection, interfaceRegistry);
+        } else {
+          // Use normal bean resolution
+          const candidates = this.resolver.resolve(injection, index);
+          console.log(`[CodeLensProvider] Found ${candidates.length} candidates for ${injection.beanType}`);
 
-          const codeLens = new vscode.CodeLens(range, command);
+          if (candidates.length > 0) {
+            const range = new vscode.Range(
+              injection.location.line,
+              0,
+              injection.location.line,
+              0
+            );
+
+            const command: vscode.Command = {
+              title: candidates.length === 1
+                ? '→ go to bean definition'
+                : `→ go to bean definition (${candidates.length} candidates)`,
+              command: 'happy-java.navigateToBean',
+              arguments: [injection]
+            };
+
+            codeLens = new vscode.CodeLens(range, command);
+          }
+        }
+
+        if (codeLens) {
           codeLenses.push(codeLens);
         }
       }
@@ -419,5 +436,133 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     return undefined;
+  }
+
+  /**
+   * Resolve interface injection and create CodeLens
+   * @param injection Injection point
+   * @param interfaceRegistry Interface registry
+   * @returns CodeLens or undefined
+   */
+  private resolveInterfaceInjection(
+    injection: BeanInjectionPoint,
+    interfaceRegistry: import('../indexing/InterfaceRegistry').InterfaceRegistry
+  ): vscode.CodeLens | undefined {
+    // Get all implementations for this interface
+    const implementations = interfaceRegistry.getImplementations(injection.beanType);
+    console.log(`[CodeLensProvider] Interface ${injection.beanType} has ${implementations.length} implementations`);
+
+    if (implementations.length === 0) {
+      // No implementations found
+      return this.createErrorCodeLens(injection, 'No implementations found');
+    }
+
+    // Create disambiguation context
+    const context: DisambiguationContext = {
+      interfaceFQN: injection.beanType,
+      rawType: injection.beanType.split('.').pop() || injection.beanType,
+      qualifier: injection.qualifier,
+      candidates: implementations,
+      injectionLocation: injection.location
+    };
+
+    // Resolve using InterfaceResolver
+    const result = this.interfaceResolver.resolve(context);
+    console.log(`[CodeLensProvider] Interface resolution result: ${result.status}`);
+
+    return this.createCodeLensFromResult(injection, result);
+  }
+
+  /**
+   * Create CodeLens from InterfaceResolutionResult
+   * @param injection Injection point
+   * @param result Resolution result
+   * @returns CodeLens or undefined
+   */
+  private createCodeLensFromResult(
+    injection: BeanInjectionPoint,
+    result: import('../models/types').InterfaceResolutionResult
+  ): vscode.CodeLens | undefined {
+    const range = new vscode.Range(
+      injection.location.line,
+      0,
+      injection.location.line,
+      0
+    );
+
+    let title: string;
+    let command: vscode.Command;
+
+    switch (result.status) {
+      case 'single':
+        title = `→ ${result.bean.name}`;
+        command = {
+          title,
+          command: 'happy-java.navigateToBean',
+          arguments: [injection, [result.bean]]
+        };
+        break;
+
+      case 'primary':
+        title = `→ ${result.bean.name} (@Primary)`;
+        command = {
+          title,
+          command: 'happy-java.navigateToBean',
+          arguments: [injection, [result.bean]]
+        };
+        break;
+
+      case 'qualified':
+        title = `→ ${result.bean.name} (@Qualifier)`;
+        command = {
+          title,
+          command: 'happy-java.navigateToBean',
+          arguments: [injection, [result.bean]]
+        };
+        break;
+
+      case 'multiple':
+        title = `→ ${result.candidates.length} implementations (choose one)`;
+        command = {
+          title,
+          command: 'happy-java.navigateToBean',
+          arguments: [injection, result.candidates]
+        };
+        break;
+
+      case 'none':
+        return this.createErrorCodeLens(injection, 'No matching implementations');
+
+      default:
+        return undefined;
+    }
+
+    return new vscode.CodeLens(range, command);
+  }
+
+  /**
+   * Create error CodeLens for unresolved interfaces
+   * @param injection Injection point
+   * @param message Error message
+   * @returns CodeLens
+   */
+  private createErrorCodeLens(
+    injection: BeanInjectionPoint,
+    message: string
+  ): vscode.CodeLens {
+    const range = new vscode.Range(
+      injection.location.line,
+      0,
+      injection.location.line,
+      0
+    );
+
+    const command: vscode.Command = {
+      title: `⚠ ${message}`,
+      command: 'happy-java.showMessage',
+      arguments: [message]
+    };
+
+    return new vscode.CodeLens(range, command);
   }
 }

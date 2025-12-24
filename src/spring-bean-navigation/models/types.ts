@@ -121,3 +121,61 @@ export interface LombokFieldInfo {
   /** Field annotations (for future extensibility) */
   annotations: string[];
 }
+
+/**
+ * Interface definition - represents a Java interface or abstract class
+ */
+export interface InterfaceDefinition {
+  /** Fully qualified name (e.g., "com.example.repository.UserRepository") */
+  fullyQualifiedName: string;
+  /** Simple name without package (e.g., "UserRepository") */
+  simpleName: string;
+  /** Package name (e.g., "com.example.repository") */
+  packageName: string;
+  /** Source file location */
+  location: import('./BeanLocation').BeanLocation;
+  /** Whether this is an abstract class (true) or interface (false) */
+  isAbstract: boolean;
+  /** Raw type without generic parameters (e.g., "Repository" from "Repository<User>") */
+  rawType: string;
+}
+
+/**
+ * Implementation relationship - links an interface to a bean implementation
+ */
+export interface ImplementationRelationship {
+  /** Fully qualified name of the interface */
+  interfaceFQN: string;
+  /** Bean that implements this interface */
+  implementingBean: any; // Will be BeanDefinition, using any to avoid circular dependency
+  /** How this implementation was detected */
+  detectionMethod: 'implements_clause' | 'bean_return_type' | 'extends_abstract';
+  /** Timestamp when relationship was established (for debugging) */
+  indexedAt: number;
+}
+
+/**
+ * Interface resolution result - outcome of resolving an interface to implementation(s)
+ */
+export type InterfaceResolutionResult =
+  | { status: 'single'; bean: any }     // Single implementation found
+  | { status: 'primary'; bean: any }    // Multiple implementations, one is @Primary
+  | { status: 'qualified'; bean: any }  // Resolved via @Qualifier match
+  | { status: 'multiple'; candidates: any[] }  // Multiple candidates, user must select
+  | { status: 'none' };                 // No implementations found
+
+/**
+ * Disambiguation context - input for interface resolution logic
+ */
+export interface DisambiguationContext {
+  /** Fully qualified name of the interface to resolve */
+  interfaceFQN: string;
+  /** Raw type of the interface (generic parameters stripped) */
+  rawType: string;
+  /** Qualifier from injection point (if present) */
+  qualifier?: string;
+  /** All candidate implementations from index */
+  candidates: any[]; // Will be BeanDefinition[], using any to avoid circular dependency
+  /** Source location of injection point (for error messages) */
+  injectionLocation: import('./BeanLocation').BeanLocation;
+}

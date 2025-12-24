@@ -38,6 +38,9 @@ export interface BeanDefinition {
   
   /** Conditional annotation details */
   conditionalInfo?: string;
+
+  /** Interfaces implemented by this bean (empty array if none) */
+  implementedInterfaces?: string[];
 }
 
 /**
