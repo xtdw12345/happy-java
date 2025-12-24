@@ -100,17 +100,13 @@ export class BeanIndexer implements IBeanIndexer {
   }
 
   async buildFullIndex(showProgress: boolean = false): Promise<number> {
-    console.log('[BeanIndexer] Building full index...');
-
     const javaFiles = await this.findAllJavaFiles();
-    console.log(`[BeanIndexer] Found ${javaFiles.length} Java files`);
 
     for (const uri of javaFiles) {
       await this.updateFile(uri);
     }
 
     const stats = this.getStats();
-    console.log(`[BeanIndexer] Indexed ${stats.totalBeans} beans from ${stats.indexedFiles} files`);
 
     return stats.totalBeans;
   }

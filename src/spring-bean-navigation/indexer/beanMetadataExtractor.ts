@@ -89,15 +89,10 @@ export class BeanMetadataExtractor {
     const definitions: BeanDefinition[] = [];
 
     for (const annotation of annotations) {
-      console.log(`[BeanMetadataExtractor] Checking annotation ${annotation.name} for bean definition`);
       if (this.annotationScanner.isBeanDefinitionAnnotation(annotation)) {
-        console.log(`[BeanMetadataExtractor] ${annotation.name} is a bean definition annotation`);
         const definition = this.createBeanDefinition(annotation, uri, cst);
         if (definition) {
-          console.log(`[BeanMetadataExtractor] Created bean definition: ${definition.name} (${definition.type})`);
           definitions.push(definition);
-        } else {
-          console.log(`[BeanMetadataExtractor] Failed to create bean definition for ${annotation.name}`);
         }
       }
     }
@@ -146,13 +141,9 @@ export class BeanMetadataExtractor {
    */
   private createBeanDefinition(annotation: Annotation, uri: vscode.Uri, cst: any): BeanDefinition | undefined {
     try {
-      console.log(`[BeanMetadataExtractor] Creating bean definition for ${annotation.name}`);
-
       // Extract bean name from annotation parameter or derive from class name
       const explicitName = this.annotationScanner.extractAnnotationParameter(annotation, 'value') ||
                           this.annotationScanner.extractAnnotationParameter(annotation, 'name');
-
-      console.log(`[BeanMetadataExtractor] Explicit name from annotation: ${explicitName}`);
 
       // Get class information from CST
       const classInfo = this.extractClassInfo(cst);
@@ -160,8 +151,6 @@ export class BeanMetadataExtractor {
         console.log(`[BeanMetadataExtractor] Failed to extract class info from CST`);
         return undefined;
       }
-
-      console.log(`[BeanMetadataExtractor] Class info: ${classInfo.className}, FQN: ${classInfo.fullyQualifiedName}`);
 
       const beanName = explicitName || BeanDefinition.getDefaultBeanName(classInfo.className);
       const beanType = classInfo.fullyQualifiedName;
@@ -188,10 +177,9 @@ export class BeanMetadataExtractor {
         scope: 'singleton',
         qualifiers,
         isPrimary,
-        isConditional: false
+        isConditional: false,
+        implementedInterfaces: classInfo.implementClassNames
       };
-
-      console.log(`[BeanMetadataExtractor] Created bean definition successfully`);
       return definition;
     } catch (error) {
       console.error('[BeanMetadataExtractor] Failed to create bean definition:', error);
@@ -242,7 +230,7 @@ export class BeanMetadataExtractor {
    * @param cst Java CST
    * @returns Class info or undefined
    */
-  private extractClassInfo(cst: any): { className: string; fullyQualifiedName: string; packageName: string } | undefined {
+  private extractClassInfo(cst: any): { className: string; fullyQualifiedName: string; packageName: string; implementClassNames: string[] } | undefined {
     try {
       // Extract package name
       const ordinaryCompilationUnit = cst.children?.ordinaryCompilationUnit?.[0];
@@ -268,15 +256,85 @@ export class BeanMetadataExtractor {
 
       const fullyQualifiedName = packageName ? `${packageName}.${className}` : className;
 
-      console.log(`[BeanMetadataExtractor] Extracted class info: ${className}, FQN: ${fullyQualifiedName}`);
+      // Extract extends (superclass) and implements (interfaces)
+      const implementClassNames: string[] = [];
+
+      // Extract superclass from classExtends
+      const classExtends = normalClassDecl?.children?.classExtends?.[0];
+      if (classExtends) {
+        const superClassName = this.extractTypeNameFromClassType(classExtends.children?.classType?.[0], packageName);
+        if (superClassName) {
+          implementClassNames.push(superClassName);
+        }
+      }
+
+      // Extract implemented interfaces from classImplements
+      const classImplements = normalClassDecl?.children?.classImplements?.[0];
+      if (classImplements) {
+        const interfaceTypeList = classImplements.children?.interfaceTypeList?.[0];
+        if (interfaceTypeList) {
+          const interfaceTypes = interfaceTypeList.children?.interfaceType || [];
+          for (const interfaceType of interfaceTypes) {
+            const classType = interfaceType.children?.classType?.[0];
+            if (classType) {
+              const interfaceName = this.extractTypeNameFromClassType(classType, packageName);
+              if (interfaceName) {
+                implementClassNames.push(interfaceName);
+              }
+            }
+          }
+        }
+      }
 
       return {
         className,
         fullyQualifiedName,
-        packageName
+        packageName,
+        implementClassNames
       };
     } catch (error) {
       console.error('[BeanMetadataExtractor] Error extracting class info:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Extract type name from classType CST node
+   * @param classType ClassType CST node
+   * @param packageName Current package name for building FQN
+   * @returns Fully qualified type name or undefined
+   */
+  private extractTypeNameFromClassType(classType: any, packageName: string): string | undefined {
+    if (!classType) {
+      return undefined;
+    }
+
+    try {
+      // Direct Identifier access (for simple type names like "UserService")
+      const directIdentifiers = classType.children?.Identifier || [];
+      if (directIdentifiers.length > 0) {
+        // Simple case: single identifier
+        if (directIdentifiers.length === 1) {
+          const simpleName = directIdentifiers[0].image;
+          // Build FQN with package name
+          return packageName ? `${packageName}.${simpleName}` : simpleName;
+        }
+        // Multiple identifiers means qualified name (e.g., com.example.Service)
+        return directIdentifiers.map((id: any) => id.image).join('.');
+      }
+
+      // Try classOrInterfaceType for qualified names
+      const classOrInterfaceType = classType.children?.classOrInterfaceType?.[0];
+      if (classOrInterfaceType) {
+        const identifiers = classOrInterfaceType.children?.Identifier || [];
+        if (identifiers.length > 0) {
+          return identifiers.map((id: any) => id.image).join('.');
+        }
+      }
+
+      return undefined;
+    } catch (error) {
+      console.error('[BeanMetadataExtractor] Error extracting type name from classType:', error);
       return undefined;
     }
   }

@@ -7,6 +7,9 @@ import { SpringBeanCodeLensProvider } from './spring-bean-navigation/providers/b
 import { BeanResolver } from './spring-bean-navigation/resolver/beanResolver';
 import { BeanInjectionPoint } from './spring-bean-navigation/models/BeanInjectionPoint';
 import { BeanLocation } from './spring-bean-navigation/models/BeanLocation';
+import { BeanDefinition } from './spring-bean-navigation/models/BeanDefinition';
+import { BeanCandidate } from './spring-bean-navigation/models/BeanCandidate';
+import { MatchReason } from './spring-bean-navigation/models/types';
 import { ProjectDetector } from './spring-bean-navigation/utils/projectDetector';
 
 let beanIndexer: BeanIndexer | undefined;
@@ -65,15 +68,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		console.log(`[Happy Java] Loaded ${stats.totalBeans} beans from cache`);
 	}
 
-	// Register Definition Provider for Java files
-	const definitionProvider = new SpringBeanDefinitionProvider(beanIndexer);
-	const providerDisposable = vscode.languages.registerDefinitionProvider(
-		{ language: 'java', scheme: 'file' },
-		definitionProvider
-	);
-	context.subscriptions.push(providerDisposable);
-	console.log('[Happy Java] Definition Provider registered for Java files');
-
 	// Register CodeLens Provider for Java files
 	const codeLensProvider = new SpringBeanCodeLensProvider(beanIndexer);
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
@@ -86,14 +80,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Register command for navigating to bean definition (triggered by CodeLens)
 	const navigateToBeanCommand = vscode.commands.registerCommand(
 		'happy-java.navigateToBean',
-		async (injection: BeanInjectionPoint) => {
+		async (injection: BeanInjectionPoint, preResolvedBeans?: BeanDefinition[]) => {
 			try {
 				// Get bean index
 				const index = beanIndexer!.getIndex();
 
-				// Resolve bean candidates
-				const resolver = new BeanResolver();
-				const candidates = resolver.resolve(injection, index);
+				let candidates: BeanCandidate[];
+
+				// Check if beans were pre-resolved by CodeLensProvider (for interface types)
+				if (preResolvedBeans && preResolvedBeans.length > 0) {
+					// Use pre-resolved beans directly (already resolved by InterfaceResolver)
+					candidates = preResolvedBeans.map(bean => BeanCandidate.create(bean, MatchReason.TYPE_MATCH));
+				} else {
+					// Resolve bean candidates using BeanResolver
+					const resolver = new BeanResolver();
+					candidates = resolver.resolve(injection, index);
+				}
 
 				if (candidates.length === 0) {
 					vscode.window.showWarningMessage(

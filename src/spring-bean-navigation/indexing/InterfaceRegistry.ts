@@ -70,13 +70,28 @@ export class InterfaceRegistry {
   }
 
   /**
-   * Get all bean implementations for an interface
+   * Get all bean implementations for an interface (supports both FQN and simple name)
    *
-   * @param interfaceFQN Fully qualified name of the interface
+   * @param interfaceType Interface type (FQN or simple name)
    * @returns Array of bean definitions (empty if none found)
    */
-  getImplementations(interfaceFQN: string): BeanDefinition[] {
-    return this.implementations.get(interfaceFQN) || [];
+  getImplementations(interfaceType: string): BeanDefinition[] {
+    // Direct FQN match
+    const direct = this.implementations.get(interfaceType);
+    if (direct && direct.length > 0) {
+      return direct;
+    }
+
+    // Simple name match
+    if (!interfaceType.includes('.')) {
+      for (const [fqn, impls] of this.implementations.entries()) {
+        if (fqn.endsWith('.' + interfaceType) || fqn === interfaceType) {
+          return impls;
+        }
+      }
+    }
+
+    return [];
   }
 
   /**
@@ -90,13 +105,51 @@ export class InterfaceRegistry {
   }
 
   /**
-   * Check if an interface is registered
+   * Check if an interface is registered (supports both FQN and simple name)
    *
-   * @param interfaceFQN Fully qualified name of the interface
+   * @param interfaceType Interface type (FQN or simple name)
    * @returns True if interface is registered
    */
-  hasInterface(interfaceFQN: string): boolean {
-    return this.interfaces.has(interfaceFQN);
+  hasInterface(interfaceType: string): boolean {
+    // Direct FQN match
+    if (this.interfaces.has(interfaceType)) {
+      return true;
+    }
+
+    // Simple name match - check if any registered interface ends with .{simpleName}
+    if (!interfaceType.includes('.')) {
+      for (const fqn of this.interfaces.keys()) {
+        if (fqn.endsWith('.' + interfaceType) || fqn === interfaceType) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Find interface FQN by simple name or FQN
+   *
+   * @param interfaceType Interface type (FQN or simple name)
+   * @returns Fully qualified name if found, undefined otherwise
+   */
+  findInterfaceFQN(interfaceType: string): string | undefined {
+    // Direct FQN match
+    if (this.interfaces.has(interfaceType)) {
+      return interfaceType;
+    }
+
+    // Simple name match
+    if (!interfaceType.includes('.')) {
+      for (const fqn of this.interfaces.keys()) {
+        if (fqn.endsWith('.' + interfaceType) || fqn === interfaceType) {
+          return fqn;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   /**

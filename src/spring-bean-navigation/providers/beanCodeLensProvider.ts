@@ -38,24 +38,17 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
     const codeLenses: vscode.CodeLens[] = [];
 
     try {
-      console.log(`[CodeLensProvider] Providing CodeLenses for ${document.fileName}`);
-
       // Scan document for injection points
       const injectionPoints = await this.findInjectionPoints(document);
-      console.log(`[CodeLensProvider] Found ${injectionPoints.length} injection points`);
 
       for (const injection of injectionPoints) {
-        console.log(`[CodeLensProvider] Processing injection: ${injection.beanType} at line ${injection.location.line}`);
 
         // Get bean index and interface registry
         const index = this.indexer.getIndex();
         const interfaceRegistry = this.indexer.getInterfaceRegistry();
-        const stats = index.getStats();
-        console.log(`[CodeLensProvider] Index has ${stats.totalBeans} beans`);
 
         // Check if injection type is an interface
         const isInterface = interfaceRegistry.hasInterface(injection.beanType);
-        console.log(`[CodeLensProvider] Type ${injection.beanType} is interface: ${isInterface}`);
 
         let codeLens: vscode.CodeLens | undefined;
 
@@ -65,7 +58,6 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
         } else {
           // Use normal bean resolution
           const candidates = this.resolver.resolve(injection, index);
-          console.log(`[CodeLensProvider] Found ${candidates.length} candidates for ${injection.beanType}`);
 
           if (candidates.length > 0) {
             const range = new vscode.Range(
@@ -497,9 +489,12 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
       return this.createErrorCodeLens(injection, 'No implementations found');
     }
 
+    // Get the actual FQN for the interface (supports simple name lookup)
+    const interfaceFQN = interfaceRegistry.findInterfaceFQN(injection.beanType) || injection.beanType;
+
     // Create disambiguation context
     const context: DisambiguationContext = {
-      interfaceFQN: injection.beanType,
+      interfaceFQN: interfaceFQN,
       rawType: injection.beanType.split('.').pop() || injection.beanType,
       qualifier: injection.qualifier,
       candidates: implementations,
