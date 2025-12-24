@@ -1,6 +1,7 @@
 # Claude/Specify
 .claude/
 .specify/
+specs/
 
 # VS Code
 .vscode/
