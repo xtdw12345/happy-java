@@ -64,14 +64,8 @@ export class BeanMetadataExtractor {
       const annotations = this.annotationScanner.extractAnnotations(cst, uri);
       console.log(`[BeanMetadataExtractor] Found ${annotations.length} annotations`);
 
-      // Log all annotations found
-      for (const ann of annotations) {
-        console.log(`[BeanMetadataExtractor] Annotation: ${ann.name} at line ${ann.location.line}`);
-      }
-
       // Extract bean definitions
       result.definitions = this.extractBeanDefinitions(annotations, uri, cst);
-      console.log(`[BeanMetadataExtractor] Extracted ${result.definitions.length} bean definitions`);
 
       // Extract injection points
       result.injectionPoints = this.extractInjectionPoints(annotations, uri, cst);

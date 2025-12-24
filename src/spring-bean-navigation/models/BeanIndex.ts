@@ -2,6 +2,7 @@
  * Bean index container - maintains index of all Bean definitions and injection points
  */
 
+import * as vscode from 'vscode';
 import { BeanDefinition } from './BeanDefinition';
 import { BeanInjectionPoint } from './BeanInjectionPoint';
 import { BeanCandidate } from './BeanCandidate';
@@ -324,6 +325,15 @@ export class BeanIndex {
       all.push(...injections);
     }
     return all;
+  }
+
+  /**
+   * Get injection points for a specific file
+   * @param uri File URI
+   * @returns Array of injection points in the file, empty if none found
+   */
+  getInjectionPointsForUri(uri: vscode.Uri): BeanInjectionPoint[] {
+    return this.injectionsByFile.get(uri.fsPath) || [];
   }
 
   /**

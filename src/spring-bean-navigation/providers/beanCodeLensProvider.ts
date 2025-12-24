@@ -110,6 +110,46 @@ export class SpringBeanCodeLensProvider implements vscode.CodeLensProvider {
   ): Promise<BeanInjectionPoint[]> {
     const injectionPoints: BeanInjectionPoint[] = [];
 
+    // PHASE 1: Query BeanIndexer for pre-extracted injection points
+    // This includes Lombok-generated injections (InjectionType.LOMBOK_CONSTRUCTOR)
+    const beanIndex = this.indexer.getIndex();
+    const indexedInjections = beanIndex.getInjectionPointsForUri(document.uri);
+
+    if (indexedInjections.length > 0) {
+      console.log(`[CodeLensProvider] Found ${indexedInjections.length} pre-extracted injection points from BeanIndexer`);
+      injectionPoints.push(...indexedInjections);
+    }
+
+    // PHASE 2: Fallback to manual parsing for backward compatibility
+    // This handles cases where BeanIndexer hasn't indexed the file yet
+    const manualInjections = await this.extractManualInjectionPoints(document);
+    if (manualInjections.length > 0) {
+      console.log(`[CodeLensProvider] Found ${manualInjections.length} injection points from manual parsing`);
+      // Deduplicate: only add manual injections that aren't already in indexedInjections
+      for (const manual of manualInjections) {
+        const isDuplicate = indexedInjections.some(indexed =>
+          indexed.location.line === manual.location.line &&
+          indexed.beanType === manual.beanType
+        );
+        if (!isDuplicate) {
+          injectionPoints.push(manual);
+        }
+      }
+    }
+
+    return injectionPoints;
+  }
+
+  /**
+   * Extract injection points manually from document (fallback method)
+   * @param document Text document
+   * @returns Array of injection points
+   */
+  private async extractManualInjectionPoints(
+    document: vscode.TextDocument
+  ): Promise<BeanInjectionPoint[]> {
+    const injectionPoints: BeanInjectionPoint[] = [];
+
     // Scan each line for injection points
     for (let lineNum = 0; lineNum < document.lineCount; lineNum++) {
       const line = document.lineAt(lineNum);
