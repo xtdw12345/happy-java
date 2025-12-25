@@ -22,9 +22,10 @@ export interface IBeanIndexer {
   /**
    * Build full index
    * @param showProgress Whether to show progress notification
+   * @param progressReporter Optional progress reporter for UI updates
    * @returns Number of beans indexed
    */
-  buildFullIndex(showProgress?: boolean): Promise<number>;
+  buildFullIndex(showProgress?: boolean, progressReporter?: vscode.Progress<{ message?: string; increment?: number }>): Promise<number>;
 
   /**
    * Update index for a single file
@@ -99,11 +100,27 @@ export class BeanIndexer implements IBeanIndexer {
     console.log('[BeanIndexer] Initialized with', workspaceFolders.length, 'workspace folders');
   }
 
-  async buildFullIndex(showProgress: boolean = false): Promise<number> {
+  async buildFullIndex(showProgress: boolean = false, progressReporter?: vscode.Progress<{ message?: string; increment?: number }>): Promise<number> {
     const javaFiles = await this.findAllJavaFiles();
+    const batchSize = 10;  // Process 10 files in parallel
 
-    for (const uri of javaFiles) {
-      await this.updateFile(uri);
+    // Split files into batches
+    const batches: vscode.Uri[][] = [];
+    for (let i = 0; i < javaFiles.length; i += batchSize) {
+      batches.push(javaFiles.slice(i, i + batchSize));
+    }
+
+    let processedCount = 0;
+    for (const batch of batches) {
+      await Promise.all(batch.map(uri => this.updateFile(uri)));
+      processedCount += batch.length;
+
+      if (showProgress && progressReporter) {
+        progressReporter.report({
+          message: `Indexed ${processedCount}/${javaFiles.length} files`,
+          increment: (batch.length / javaFiles.length) * 100
+        });
+      }
     }
 
     const stats = this.getStats();

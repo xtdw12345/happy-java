@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			cancellable: false
 		}, async (progress) => {
 			progress.report({ message: 'Indexing Spring Beans...' });
-			const count = await beanIndexer!.buildFullIndex(true);
+			const count = await beanIndexer!.buildFullIndex(true, progress);
 			console.log(`[Spring Bean Navigation] Indexed ${count} Spring Beans`);
 			return;
 		});
