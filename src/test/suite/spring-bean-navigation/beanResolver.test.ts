@@ -3,11 +3,11 @@
  */
 
 import * as assert from 'assert';
-import { BeanResolver } from '../../../spring-bean-navigation/resolver/beanResolver';
-import { BeanDefinition } from '../../../spring-bean-navigation/models/BeanDefinition';
-import { BeanInjectionPoint } from '../../../spring-bean-navigation/models/BeanInjectionPoint';
-import { BeanDefinitionType, InjectionType, MatchReason } from '../../../spring-bean-navigation/models/types';
-import { BeanLocation } from '../../../spring-bean-navigation/models/BeanLocation';
+import { BeanResolver } from '../../../resolver/beanResolver';
+import { BeanDefinition } from '../../../models/BeanDefinition';
+import { BeanInjectionPoint } from '../../../models/BeanInjectionPoint';
+import { BeanDefinitionType, InjectionType, MatchReason } from '../../../models/types';
+import { BeanLocation } from '../../../models/BeanLocation';
 import * as vscode from 'vscode';
 
 suite('BeanResolver Type Matching Test Suite', () => {

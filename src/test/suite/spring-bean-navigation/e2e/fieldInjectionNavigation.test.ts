@@ -5,9 +5,9 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { BeanIndex } from '../../../../spring-bean-navigation/models/BeanIndex';
-import { BeanIndexer } from '../../../../spring-bean-navigation/indexer/beanIndexer';
-import { BeanResolver } from '../../../../spring-bean-navigation/resolver/beanResolver';
+import { BeanIndex } from '../../../../models/BeanIndex';
+import { BeanIndexer } from '../../../../indexer/beanIndexer';
+import { BeanResolver } from '../../../../resolver/beanResolver';
 import { BeanFactory } from '../fixtures/BeanFactory';
 
 suite('Field Injection Navigation E2E Test Suite', () => {

@@ -5,14 +5,14 @@
  */
 
 import * as assert from 'assert';
-import { LombokConstructorType, OnConstructorSyntax } from '../../../../spring-bean-navigation/models/types';
-import { Annotation } from '../../../../spring-bean-navigation/indexer/annotationScanner';
-import { BeanLocation } from '../../../../spring-bean-navigation/models/BeanLocation';
+import { LombokConstructorType, OnConstructorSyntax } from '../../../../models/types';
+import { Annotation } from '../../../../indexer/annotationScanner';
+import { BeanLocation } from '../../../../models/BeanLocation';
 import * as vscode from 'vscode';
 
 // Import will fail until we create the implementation
 // This is expected for TDD Red phase
-import { LombokAnnotationDetector } from '../../../../spring-bean-navigation/indexer/lombok/lombokAnnotationDetector';
+import { LombokAnnotationDetector } from '../../../../indexer/lombok/lombokAnnotationDetector';
 
 suite('LombokAnnotationDetector', () => {
   let detector: LombokAnnotationDetector;

@@ -4,10 +4,10 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { InterfaceDefinition, ImplementationRelationship, BeanDefinitionType } from '../../../../spring-bean-navigation/models/types';
-import { BeanDefinition } from '../../../../spring-bean-navigation/models/BeanDefinition';
-import { BeanLocation } from '../../../../spring-bean-navigation/models/BeanLocation';
-import { InterfaceRegistry } from '../../../../spring-bean-navigation/indexing/InterfaceRegistry';
+import { InterfaceDefinition, ImplementationRelationship, BeanDefinitionType } from '../../../../models/types';
+import { BeanDefinition } from '../../../../models/BeanDefinition';
+import { BeanLocation } from '../../../../models/BeanLocation';
+import { InterfaceRegistry } from '../../../../indexing/InterfaceRegistry';
 
 suite('InterfaceRegistry Test Suite', () => {
   let registry: InterfaceRegistry;

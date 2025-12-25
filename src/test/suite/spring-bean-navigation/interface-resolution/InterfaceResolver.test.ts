@@ -4,10 +4,10 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { InterfaceResolutionResult, DisambiguationContext, BeanDefinitionType } from '../../../../spring-bean-navigation/models/types';
-import { BeanDefinition } from '../../../../spring-bean-navigation/models/BeanDefinition';
-import { BeanLocation } from '../../../../spring-bean-navigation/models/BeanLocation';
-import { InterfaceResolver } from '../../../../spring-bean-navigation/indexing/InterfaceResolver';
+import { InterfaceResolutionResult, DisambiguationContext, BeanDefinitionType } from '../../../../models/types';
+import { BeanDefinition } from '../../../../models/BeanDefinition';
+import { BeanLocation } from '../../../../models/BeanLocation';
+import { InterfaceResolver } from '../../../../indexing/InterfaceResolver';
 
 suite('InterfaceResolver Test Suite', () => {
   let resolver: InterfaceResolver;

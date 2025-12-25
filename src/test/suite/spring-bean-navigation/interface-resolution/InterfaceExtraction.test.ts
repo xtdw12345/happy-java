@@ -5,14 +5,14 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { InterfaceDefinition } from '../../../../spring-bean-navigation/models/types';
-import { InterfaceExtractor } from '../../../../spring-bean-navigation/indexing/InterfaceExtractor';
+import { InterfaceDefinition } from '../../../../models/types';
+import { InterfaceExtractor } from '../../../../indexing/InterfaceExtractor';
 
 suite('Interface Extraction Test Suite', () => {
   let extractor: InterfaceExtractor;
-  // __dirname = out/test/suite/spring-bean-navigation/interface-resolution
+  // __dirname = out/test/suite/interface-resolution
   // Go up 5 levels to project root, then to src fixtures
-  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/spring-bean-navigation/fixtures/interfaces');
+  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/fixtures/interfaces');
 
   setup(() => {
     extractor = new InterfaceExtractor();

@@ -5,8 +5,8 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { BeanInjectionPoint } from '../../../spring-bean-navigation/models/BeanInjectionPoint';
-import { InjectionType } from '../../../spring-bean-navigation/models/types';
+import { BeanInjectionPoint } from '../../../models/BeanInjectionPoint';
+import { InjectionType } from '../../../models/types';
 
 suite('Injection Point Extraction Test Suite', () => {
   test('should validate field injection point structure', () => {

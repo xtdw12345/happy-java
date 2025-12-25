@@ -5,8 +5,8 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { BeanIndex } from '../../../../spring-bean-navigation/models/BeanIndex';
-import { BeanResolver } from '../../../../spring-bean-navigation/resolver/beanResolver';
+import { BeanIndex } from '../../../../models/BeanIndex';
+import { BeanResolver } from '../../../../resolver/beanResolver';
 import { BeanFactory } from '../fixtures/BeanFactory';
 
 suite('Constructor Injection Navigation E2E Test Suite', () => {

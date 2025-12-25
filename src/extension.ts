@@ -1,15 +1,15 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { BeanIndexer } from './spring-bean-navigation/indexer/beanIndexer';
-import { SpringBeanCodeLensProvider } from './spring-bean-navigation/providers/beanCodeLensProvider';
-import { BeanResolver } from './spring-bean-navigation/resolver/beanResolver';
-import { BeanInjectionPoint } from './spring-bean-navigation/models/BeanInjectionPoint';
-import { BeanLocation } from './spring-bean-navigation/models/BeanLocation';
-import { BeanDefinition } from './spring-bean-navigation/models/BeanDefinition';
-import { BeanCandidate } from './spring-bean-navigation/models/BeanCandidate';
-import { MatchReason } from './spring-bean-navigation/models/types';
-import { ProjectDetector } from './spring-bean-navigation/utils/projectDetector';
+import { BeanIndexer } from './indexer/beanIndexer';
+import { SpringBeanCodeLensProvider } from './providers/beanCodeLensProvider';
+import { BeanResolver } from './resolver/beanResolver';
+import { BeanInjectionPoint } from './models/BeanInjectionPoint';
+import { BeanLocation } from './models/BeanLocation';
+import { BeanDefinition } from './models/BeanDefinition';
+import { BeanCandidate } from './models/BeanCandidate';
+import { MatchReason } from './models/types';
+import { ProjectDetector } from './utils/projectDetector';
 
 let beanIndexer: BeanIndexer | undefined;
 

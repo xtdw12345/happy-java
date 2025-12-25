@@ -3,7 +3,7 @@
  */
 
 import * as assert from 'assert';
-import { extractRawType, normalizeFQN, matchesInterface } from '../../../../spring-bean-navigation/utils/typeUtils';
+import { extractRawType, normalizeFQN, matchesInterface } from '../../../../utils/typeUtils';
 
 suite('typeUtils Test Suite', () => {
 

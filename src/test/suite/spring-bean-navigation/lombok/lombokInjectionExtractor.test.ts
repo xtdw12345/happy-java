@@ -5,13 +5,13 @@
  */
 
 import * as assert from 'assert';
-import { LombokConstructorType, OnConstructorSyntax, LombokConstructorAnnotation, LombokFieldInfo } from '../../../../spring-bean-navigation/models/types';
-import { InjectionType } from '../../../../spring-bean-navigation/models/types';
+import { LombokConstructorType, OnConstructorSyntax, LombokConstructorAnnotation, LombokFieldInfo } from '../../../../models/types';
+import { InjectionType } from '../../../../models/types';
 import * as vscode from 'vscode';
 
 // Import will fail until we create the implementation
 // This is expected for TDD Red phase
-import { LombokInjectionExtractor } from '../../../../spring-bean-navigation/indexer/lombok/lombokInjectionExtractor';
+import { LombokInjectionExtractor } from '../../../../indexer/lombok/lombokInjectionExtractor';
 
 suite('LombokInjectionExtractor', () => {
   let extractor: LombokInjectionExtractor;

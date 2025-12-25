@@ -7,9 +7,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 suite('Interface-based CodeLens Integration E2E Test Suite', () => {
-  // __dirname = out/test/suite/spring-bean-navigation/interface-resolution
+  // __dirname = out/test/suite/interface-resolution
   // Go up 5 levels to project root, then to src fixtures
-  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/spring-bean-navigation/fixtures/interfaces');
+  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/fixtures/interfaces');
 
   /**
    * Helper to get CodeLens for a specific file

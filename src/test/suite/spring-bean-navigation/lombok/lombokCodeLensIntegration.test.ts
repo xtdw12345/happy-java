@@ -7,7 +7,7 @@
  * Prerequisites:
  * - Lombok backend extraction is complete (21 unit tests passing)
  * - CodeLensProvider integration bug fixed (queries BeanIndexer)
- * - Fixture files exist in src/test/suite/spring-bean-navigation/fixtures/lombok/
+ * - Fixture files exist in src/test/suite/fixtures/lombok/
  */
 
 import * as assert from 'assert';
@@ -15,7 +15,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 suite('Lombok CodeLens Integration E2E - User Story 1', () => {
-  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/spring-bean-navigation/fixtures/lombok');
+  const fixturesPath = path.join(__dirname, '../../../../../src/test/suite/fixtures/lombok');
 
   // T010: CodeLens appears on @NonNull final field in @RequiredArgsConstructor class
   test('[US1] should show CodeLens on @NonNull final field in @RequiredArgsConstructor class', async function() {
@@ -104,12 +104,12 @@ suite('Lombok CodeLens Integration E2E - User Story 1', () => {
  * - Alternative: Manual testing below
  *
  * T016: Manual test with RequiredArgsConstructorController.java
- * 1. Open src/test/suite/spring-bean-navigation/fixtures/lombok/RequiredArgsConstructorController.java
+ * 1. Open src/test/suite/fixtures/lombok/RequiredArgsConstructorController.java
  * 2. Verify CodeLens appears above @NonNull private final UserService field
  * 3. Click CodeLens and verify navigation to UserService.java
  *
  * T017: Manual test with AllArgsConstructorService.java
- * 1. Open src/test/suite/spring-bean-navigation/fixtures/lombok/AllArgsConstructorService.java
+ * 1. Open src/test/suite/fixtures/lombok/AllArgsConstructorService.java
  * 2. Verify CodeLens appears above ALL fields (not just @NonNull)
  * 3. Click any CodeLens and verify navigation works
  *

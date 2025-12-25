@@ -4,9 +4,9 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { BeanIndex } from '../../../spring-bean-navigation/models/BeanIndex';
-import { SpringBeanCodeLensProvider } from '../../../spring-bean-navigation/providers/beanCodeLensProvider';
-import { BeanIndexer } from '../../../spring-bean-navigation/indexer/beanIndexer';
+import { BeanIndex } from '../../../models/BeanIndex';
+import { SpringBeanCodeLensProvider } from '../../../providers/beanCodeLensProvider';
+import { BeanIndexer } from '../../../indexer/beanIndexer';
 import { BeanFactory } from './fixtures/BeanFactory';
 
 suite('CodeLens Provider Test Suite', () => {

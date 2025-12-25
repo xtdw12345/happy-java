@@ -4,7 +4,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { AnnotationScanner } from '../../../spring-bean-navigation/indexer/annotationScanner';
+import { AnnotationScanner } from '../../../indexer/annotationScanner';
 
 suite('AnnotationScanner Test Suite', () => {
   let scanner: AnnotationScanner;

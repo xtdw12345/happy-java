@@ -4,9 +4,9 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { BeanIndex } from '../../../spring-bean-navigation/models/BeanIndex';
+import { BeanIndex } from '../../../models/BeanIndex';
 import { BeanFactory } from './fixtures/BeanFactory';
-import { InjectionType } from '../../../spring-bean-navigation/models/types';
+import { InjectionType } from '../../../models/types';
 
 suite('BeanIndex Test Suite', () => {
   let index: BeanIndex;
